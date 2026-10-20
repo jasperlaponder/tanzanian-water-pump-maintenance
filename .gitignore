@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Local data: never publish the competition files
+data/raw/*
+data/processed/*
+
+# Generated outputs
+outputs/figures/*
+outputs/metrics/*
+outputs/predictions/*
+
+# Local environment variables
+.env
+
+# Allow .gitkeep files to be tracked for empty directories
+!.gitkeep
