@@ -3,9 +3,80 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
+
+from .features import prepare_features
+
+
+def plot_population_distribution(
+    train: pd.DataFrame,
+    output_dir: str | Path,
+) -> None:
+    """Plot the distribution of recorded population served."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    population = pd.to_numeric(train["population"], errors="coerce")
+    valid = population[population >= 0]
+
+    summary = pd.Series(
+        {
+            "total_pumps": len(population),
+            "missing_population": population.isna().sum(),
+            "zero_population": (population == 0).sum(),
+            "negative_population": (population < 0).sum(),
+            "median_population_including_zeros": population.median(),
+            "positive_population_median": population[population > 0].median(),
+        }
+    )
+    summary.to_csv(output_dir / "population_summary.csv", header=["value"])
+
+    # log1p keeps zero values while making a long right tail easier to see.
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.hist(np.log1p(valid), bins=40)
+    ax.set_title("Distribution of recorded population served")
+    ax.set_xlabel("log(1 + recorded population)")
+    ax.set_ylabel("Number of pumps")
+    fig.tight_layout()
+    fig.savefig(output_dir / "population_distribution.png", dpi=160)
+    plt.close(fig)
+
+
+def plot_pump_age_distribution(
+    train: pd.DataFrame,
+    output_dir: str | Path,
+) -> None:
+    """Plot pump age at the time the record was collected."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    features = prepare_features(train)
+    age = pd.to_numeric(features["pump_age_at_recording"], errors="coerce")
+    valid = age[age >= 0]
+
+    summary = pd.Series(
+        {
+            "total_pumps": len(age),
+            "missing_or_invalid_age": age.isna().sum(),
+            "median_age_years": valid.median(),
+            "p90_age_years": valid.quantile(0.90),
+            "maximum_age_years": valid.max(),
+        }
+    )
+    summary.to_csv(output_dir / "pump_age_summary.csv", header=["value"])
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.hist(valid, bins=30)
+    ax.set_title("Pump age at the time of recording")
+    ax.set_xlabel("Age (years)")
+    ax.set_ylabel("Number of pumps")
+    fig.tight_layout()
+    fig.savefig(output_dir / "pump_age_distribution.png", dpi=160)
+    plt.close(fig)
 
 
 def run_eda(train: pd.DataFrame, output_dir: str | Path) -> dict:
@@ -51,7 +122,13 @@ def run_eda(train: pd.DataFrame, output_dir: str | Path) -> dict:
         fig.savefig(output_dir / "status_by_region.png", dpi=160)
         plt.close(fig)
 
-    for column in ["quantity", "waterpoint_type", "source", "management"]:
+    for column in [
+        "quantity",
+        "quantity_group",
+        "waterpoint_type",
+        "source",
+        "management",
+    ]:
         if column in train.columns:
             rates = pd.crosstab(
                 train[column].fillna("Missing"),
@@ -66,6 +143,9 @@ def run_eda(train: pd.DataFrame, output_dir: str | Path) -> dict:
     missing.head(20).to_csv(
         output_dir / "top_missingness.csv", header=["missing_fraction"]
     )
+    
+    plot_population_distribution(train, output_dir)
+    plot_pump_age_distribution(train, output_dir)
 
     print("\nTarget distribution:")
     print(target_counts.to_string())

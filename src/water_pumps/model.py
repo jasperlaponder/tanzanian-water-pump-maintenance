@@ -41,10 +41,10 @@ def evaluate_models(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     X_train = prepare_features(train)
-    y_train = train["status_group"]
+    y_train = (train["status_group"] != "functional").astype(int)
 
     X_val = prepare_features(validation)
-    y_val = validation["status_group"]
+    y_val = (validation["status_group"] != "functional").astype(int)
 
     # Fit the baseline and Random Forest on X_train, y_train.
     # Evaluate both on X_val, y_val.

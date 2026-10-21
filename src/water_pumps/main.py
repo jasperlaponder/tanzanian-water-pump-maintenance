@@ -1,5 +1,7 @@
 from .analysis import run_eda
 from .dataloader import load_data, split_data
+from .feature_importance import evaluate_feature_importance
+from .features import prepare_features
 from .model import evaluate_models
 from .prioritization import create_priority_lists
 
@@ -14,13 +16,14 @@ def main():
         f"holdout: {len(test):,}"
     )
 
-    run_eda(train, "outputs/figures")
+    run_eda(data, "outputs/figures")
     model, _ = evaluate_models(train, validation, "outputs/metrics")
-    create_priority_lists(
-        model=model,
-        test=test,
-        output_dir="outputs/predictions",
-    )
+    evaluate_feature_importance(model, prepare_features(validation), (validation["status_group"] != "functional").astype(int), "outputs/figures")
+    # create_priority_lists(
+    #     model=model,
+    #     test=test,
+    #     output_dir="outputs/predictions",
+    # )
 
 
 if __name__ == "__main__":
