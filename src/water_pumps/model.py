@@ -111,6 +111,53 @@ def calculate_screening_metrics(
     }
 
 
+def evaluate_binary_screening(y_true_bin, y_pred_bin):
+    """Evaluate a three-class model as a binary inspection screen.
+
+    A pump is positive if its recorded status indicates that
+    intervention may be needed.
+    """
+
+
+    n = len(y_true_bin)
+    base_rate = y_true_bin.mean()
+    flagged = y_pred_bin.mean()
+
+    tp = np.sum(y_true_bin & y_pred_bin)
+    actual_positive = np.sum(y_true_bin)
+    predicted_positive = np.sum(y_pred_bin)
+
+    recall = tp / actual_positive if actual_positive else 0.0
+    precision = tp / predicted_positive if predicted_positive else 0.0
+
+    lift = precision / base_rate if base_rate > 0 else np.nan
+
+    # Expected fraction of inspections avoided compared with
+    # random selection for the same expected recall.
+    saved = 1 - flagged / recall if recall > 0 else np.nan
+
+    results = {
+        "n_test_pumps": n,
+        "base_rate": base_rate,
+        "share_flagged": flagged,
+        "recall": recall,
+        "precision": precision,
+        "lift_vs_random": lift,
+        "estimated_inspections_saved": saved,
+    }
+
+    print("\nBinary screening analysis")
+    print(f"Test pumps:              {n:,}")
+    print(f"Share needing intervention: {base_rate:.1%}")
+    print(f"Share flagged:            {flagged:.1%}")
+    print(f"Recall:                   {recall:.2%}")
+    print(f"Precision:                {precision:.2%}")
+    print(f"Lift vs random selection: {lift:.2f}x")
+    print(f"Estimated inspections saved: {saved:.1%}")
+
+    return results
+
+
 def save_evaluation(
     y_true,
     y_pred,
@@ -290,6 +337,8 @@ def evaluate_models(
                 task_name=task_name,
                 model_name=model_name,
             )
+            
+            evaluate_binary_screening(screening_true, screening_pred)
 
     results = pd.DataFrame(result_rows)
     results.to_csv(output_dir / "metrics" / "model_comparison.csv", index=False)

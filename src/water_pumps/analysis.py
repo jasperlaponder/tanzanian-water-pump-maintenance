@@ -109,7 +109,10 @@ def run_eda(train: pd.DataFrame, output_dir: str | Path) -> dict:
 
     if "region" in train.columns:
         rates = pd.crosstab(train["region"], train["status_group"], normalize="index")
-        rates = rates.reindex(rates.sum(axis=1).sort_values(ascending=False).index)
+        rates = rates.sort_values(
+            by="non functional",
+            ascending=False,
+        )
         rates.to_csv(output_dir / "status_by_region.csv")
         fig, ax = plt.subplots(figsize=(12, 7))
         rates.plot(kind="bar", stacked=True, ax=ax)

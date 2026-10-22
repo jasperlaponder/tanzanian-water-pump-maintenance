@@ -19,13 +19,13 @@ def main():
     run_eda(data, "outputs/figures")
     models, _ = evaluate_models(
         train=train,
-        validation=validation,
+        validation=test,
         output_dir="outputs",
-        include_catboost=False,  # Set to True if CatBoost is installed and desired.
+        include_catboost=True,  # Set to True if CatBoost is installed and desired.
     )
 
-    X_val = prepare_features(validation)
-    y_val_binary = make_binary_target(validation["status_group"])
+    X_val = prepare_features(test)
+    y_val_binary = make_binary_target(test["status_group"])
 
     evaluate_feature_importance(
         models[("binary_screening", "random_forest")],
