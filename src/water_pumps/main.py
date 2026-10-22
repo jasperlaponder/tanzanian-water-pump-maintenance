@@ -17,10 +17,11 @@ def main():
     )
 
     run_eda(data, "outputs/figures")
-    models, results = evaluate_models(
+    models, _ = evaluate_models(
         train=train,
         validation=validation,
         output_dir="outputs",
+        include_catboost=False,  # Set to True if CatBoost is installed and desired.
     )
 
     X_val = prepare_features(validation)
@@ -31,6 +32,12 @@ def main():
         X_val,
         y_val_binary,
         output_dir="outputs/figures",
+    )
+    
+    create_priority_lists(
+        model=models[("binary_screening", "random_forest")],
+        data=test,
+        output_dir="outputs/predictions",
     )
 
 

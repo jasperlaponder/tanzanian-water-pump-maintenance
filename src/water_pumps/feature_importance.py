@@ -23,7 +23,6 @@ def evaluate_feature_importance(
         scoring="balanced_accuracy",
         n_repeats=n_repeats,
         random_state=random_state,
-        n_jobs=-1,
     )
 
     importance_df = (

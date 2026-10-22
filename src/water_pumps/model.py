@@ -1,4 +1,3 @@
-
 import json
 import warnings
 from pathlib import Path
@@ -73,12 +72,8 @@ def calculate_metrics(
     """Calculate classification metrics."""
     return {
         f"{prefix}accuracy": accuracy_score(y_true, y_pred),
-        f"{prefix}balanced_accuracy": balanced_accuracy_score(
-            y_true, y_pred
-        ),
-        f"{prefix}macro_f1": f1_score(
-            y_true, y_pred, average="macro", zero_division=0
-        ),
+        f"{prefix}balanced_accuracy": balanced_accuracy_score(y_true, y_pred),
+        f"{prefix}macro_f1": f1_score(y_true, y_pred, average="macro", zero_division=0),
         f"{prefix}weighted_f1": f1_score(
             y_true, y_pred, average="weighted", zero_division=0
         ),
@@ -91,23 +86,27 @@ def calculate_screening_metrics(
 ) -> dict:
     """Evaluate whether pumps needing intervention are identified."""
     return {
-        "screening_accuracy": accuracy_score(
-            y_true_binary, y_pred_binary
-        ),
+        "screening_accuracy": accuracy_score(y_true_binary, y_pred_binary),
         "screening_balanced_accuracy": balanced_accuracy_score(
             y_true_binary, y_pred_binary
         ),
         "screening_precision": precision_score(
-            y_true_binary, y_pred_binary,
-            pos_label=1, zero_division=0,
+            y_true_binary,
+            y_pred_binary,
+            pos_label=1,
+            zero_division=0,
         ),
         "screening_recall": recall_score(
-            y_true_binary, y_pred_binary,
-            pos_label=1, zero_division=0,
+            y_true_binary,
+            y_pred_binary,
+            pos_label=1,
+            zero_division=0,
         ),
         "screening_f1": f1_score(
-            y_true_binary, y_pred_binary,
-            pos_label=1, zero_division=0,
+            y_true_binary,
+            y_pred_binary,
+            pos_label=1,
+            zero_division=0,
         ),
     }
 
@@ -156,6 +155,7 @@ def evaluate_models(
     validation: pd.DataFrame,
     output_dir: str | Path,
     random_state: int = RANDOM_STATE,
+    include_catboost: bool = False,
 ) -> tuple[dict, pd.DataFrame]:
     """
     Train and compare models for three-class classification and
@@ -192,6 +192,7 @@ def evaluate_models(
     result_rows = []
 
     for task_name, (y_train, y_val) in tasks.items():
+        print(f"\nTraining task: {task_name}")
         # The baseline predicts the most common training class.
         baseline_class = y_train.mode().iloc[0]
         baseline_pred = np.full(len(y_val), baseline_class)
@@ -209,6 +210,7 @@ def evaluate_models(
         }
 
         # Random Forest: imputation and one-hot encoding in a pipeline.
+        print("  Fitting Random Forest...")
         rf_model = make_random_forest(X_train, random_state)
         rf_model.fit(X_train, y_train)
         rf_pred = rf_model.predict(X_val)
@@ -218,17 +220,11 @@ def evaluate_models(
 
         # CatBoost: pass categorical features as strings, without one-hot
         # encoding. Numeric missing values can remain NaN.
-        if CatBoostClassifier is not None:
-            X_train_cb, categorical_columns = (
-                prepare_catboost_features(X_train)
-            )
+        if CatBoostClassifier is not None and include_catboost:
+            X_train_cb, categorical_columns = prepare_catboost_features(X_train)
             X_val_cb, _ = prepare_catboost_features(X_val)
 
-            loss_function = (
-                "MultiClass"
-                if task_name == "three_class"
-                else "Logloss"
-            )
+            loss_function = "MultiClass" if task_name == "three_class" else "Logloss"
 
             catboost_model = CatBoostClassifier(
                 iterations=500,
@@ -241,7 +237,7 @@ def evaluate_models(
                 allow_writing_files=False,
                 thread_count=-1,
             )
-
+            print("  Fitting CatBoost...")
             catboost_model.fit(
                 X_train_cb,
                 y_train,
@@ -251,13 +247,11 @@ def evaluate_models(
                 verbose=False,
             )
 
-            catboost_pred = np.asarray(
-                catboost_model.predict(X_val_cb)
-            ).ravel()
+            catboost_pred = np.asarray(catboost_model.predict(X_val_cb)).ravel()
 
             models[(task_name, "catboost")] = catboost_model
             predictions["catboost"] = catboost_pred
-        else:
+        elif CatBoostClassifier is None and include_catboost:
             warnings.warn(
                 "CatBoost is not installed; skipping CatBoost models. "
                 "Install it with `pip install catboost` to enable them."
@@ -284,11 +278,7 @@ def evaluate_models(
                 screening_pred = np.asarray(y_pred, dtype=int)
                 screening_true = y_val.to_numpy()
 
-            row.update(
-                calculate_screening_metrics(
-                    screening_true, screening_pred
-                )
-            )
+            row.update(calculate_screening_metrics(screening_true, screening_pred))
             result_rows.append(row)
 
             save_evaluation(
