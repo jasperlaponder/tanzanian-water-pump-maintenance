@@ -2,7 +2,7 @@ from .analysis import run_eda
 from .dataloader import load_data, split_data
 from .feature_importance import evaluate_feature_importance
 from .features import prepare_features
-from .model import evaluate_models
+from .model import evaluate_models, make_binary_target
 from .prioritization import create_priority_lists
 
 
@@ -17,13 +17,21 @@ def main():
     )
 
     run_eda(data, "outputs/figures")
-    model, _ = evaluate_models(train, validation, "outputs/metrics")
-    evaluate_feature_importance(model, prepare_features(validation), (validation["status_group"] != "functional").astype(int), "outputs/figures")
-    # create_priority_lists(
-    #     model=model,
-    #     test=test,
-    #     output_dir="outputs/predictions",
-    # )
+    models, results = evaluate_models(
+        train=train,
+        validation=validation,
+        output_dir="outputs",
+    )
+
+    X_val = prepare_features(validation)
+    y_val_binary = make_binary_target(validation["status_group"])
+
+    evaluate_feature_importance(
+        models[("binary_screening", "random_forest")],
+        X_val,
+        y_val_binary,
+        output_dir="outputs/figures",
+    )
 
 
 if __name__ == "__main__":

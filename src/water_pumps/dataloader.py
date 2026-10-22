@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 
 RANDOM_STATE = 42
 
+
 def split_data(data: pd.DataFrame):
 
     # Reserve 40% for validation and final testing.
@@ -28,7 +29,7 @@ def split_data(data: pd.DataFrame):
         random_state=RANDOM_STATE,
         stratify=remaining["status_group"],
     )
-    
+
     return train, val, test
 
 

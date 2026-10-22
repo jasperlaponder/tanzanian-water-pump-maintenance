@@ -7,6 +7,11 @@ from sklearn.preprocessing import OneHotEncoder
 
 DROP_COLUMNS = ["id", "date_recorded"]
 
+CATBOOST_CATEGORICAL_COLUMNS = [
+    "region_code",
+    "district_code",
+]
+
 
 def prepare_features(frame: pd.DataFrame) -> pd.DataFrame:
     """Create modest, explainable features without using the target."""
@@ -35,6 +40,28 @@ def prepare_features(frame: pd.DataFrame) -> pd.DataFrame:
             lambda value: str(value) if pd.notna(value) else np.nan
         )
     return X
+
+
+def prepare_catboost_features(
+    X: pd.DataFrame,
+) -> tuple[pd.DataFrame, list[str]]:
+    """Prepare features for CatBoost's native categorical handling."""
+    X_cb = X.copy()
+
+    categorical_columns = X_cb.select_dtypes(
+        include=["object", "category", "string"]
+    ).columns.tolist()
+
+    for column in CATBOOST_CATEGORICAL_COLUMNS:
+        if column in X_cb.columns and column not in categorical_columns:
+            categorical_columns.append(column)
+
+    for column in categorical_columns:
+        X_cb[column] = X_cb[column].map(
+            lambda value: str(value) if pd.notna(value) else "Missing"
+        )
+
+    return X_cb, categorical_columns
 
 
 def build_preprocessor(X: pd.DataFrame) -> ColumnTransformer:

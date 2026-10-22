@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 import pandas as pd
@@ -28,11 +27,13 @@ def evaluate_feature_importance(
     )
 
     importance_df = (
-        pd.DataFrame({
-            "feature": X_val.columns,
-            "importance_mean": importance.importances_mean,
-            "importance_std": importance.importances_std,
-        })
+        pd.DataFrame(
+            {
+                "feature": X_val.columns,
+                "importance_mean": importance.importances_mean,
+                "importance_std": importance.importances_std,
+            }
+        )
         .sort_values("importance_mean", ascending=False)
         .reset_index(drop=True)
     )
@@ -46,4 +47,3 @@ def evaluate_feature_importance(
     print(importance_df.head(15).to_string(index=False))
 
     return importance_df
-    

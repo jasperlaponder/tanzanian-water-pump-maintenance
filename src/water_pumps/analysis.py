@@ -143,7 +143,7 @@ def run_eda(train: pd.DataFrame, output_dir: str | Path) -> dict:
     missing.head(20).to_csv(
         output_dir / "top_missingness.csv", header=["missing_fraction"]
     )
-    
+
     plot_population_distribution(train, output_dir)
     plot_pump_age_distribution(train, output_dir)
 
